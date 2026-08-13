@@ -117,6 +117,7 @@ android {
                     "META-INF/NOTICE*",
                     "META-INF/INDEX.LIST",
                     "META-INF/*.kotlin_module",
+                    "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
                 )
         }
     }
@@ -159,8 +160,8 @@ ktlint {
 
 detekt {
     config.setFrom(files("$rootDir/config/detekt/detekt.yml"))
-    buildUponDefaultConfig.set(true)
-    parallel.set(true)
+    buildUponDefaultConfig = true
+    parallel = true
 }
 
 dependencies {
