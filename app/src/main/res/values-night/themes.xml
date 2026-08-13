@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Dark-mode half of Theme.PulseSSH. See values/themes.xml for why the day/night split is done
+    with two resource folders instead of a single android:Theme.DeviceDefault.DayNight.* parent.
+    The colour matches darkBackground in the Compose palette (Color.kt).
+-->
+<resources>
+
+    <style name="Theme.PulseSSH" parent="android:Theme.DeviceDefault.NoActionBar">
+        <item name="android:windowBackground">#FF0E1116</item>
+    </style>
+
+</resources>

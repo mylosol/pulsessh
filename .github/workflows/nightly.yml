@@ -1,0 +1,97 @@
+# ---------------------------------------------------------------------------
+# PulseSSH - nightly safety net (optional, low cost).
+#
+# Re-runs the unit test suite on main to catch rot that a PR could not see:
+# flaky tests, time or timezone dependent logic, a dependency that moved.
+#
+# Cost guard: if nobody pushed to main in the last 24 hours, nothing has
+# changed since the previous nightly, so the run stops after ~10 seconds.
+# ---------------------------------------------------------------------------
+name: Nightly
+
+on:
+  schedule:
+    # 03:00 UTC, Monday to Friday. Weekends are skipped on purpose.
+    - cron: "0 3 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GRADLE_OPTS: >-
+    -Xmx1g
+    -Dorg.gradle.jvmargs=-Xmx2560m
+    -Dorg.gradle.workers.max=2
+    -Dkotlin.daemon.jvm.options=-Xmx1536m
+    -Dfile.encoding=UTF-8
+
+jobs:
+  guard:
+    name: guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_run: ${{ steps.activity.outputs.should_run }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          # Full history so that "git log --since" sees real commit dates.
+          fetch-depth: 0
+
+      - name: Look for commits in the last 24 hours
+        id: activity
+        run: |
+          set -euo pipefail
+          commits="$(git log --since='24 hours ago' --oneline | wc -l | tr -d ' ')"
+          echo "Commits on main in the last 24 hours: ${commits}"
+          if [ "${commits}" -gt 0 ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "should_run=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_run=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Repository idle, skipping the nightly build."
+          fi
+
+  unit:
+    name: unit
+    needs: guard
+    if: needs.guard.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Upload unit test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-test-reports
+          path: |
+            **/build/reports/tests/testDebugUnitTest/**
+            **/build/test-results/testDebugUnitTest/**
+          retention-days: 7
+          if-no-files-found: ignore

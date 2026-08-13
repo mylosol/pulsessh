@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Every user-visible string lives here; no literal UI text is allowed in Kotlin.
+    Names follow <screen>_<role>_<detail> so that a translator can group them and so that a
+    stale string is easy to spot when a screen is deleted.
+-->
+<resources>
+
+    <!-- Launcher label and the title shown in the app bar. -->
+    <string name="app_name">PulseSSH</string>
+
+    <!-- Unlock gate. -->
+    <string name="lock_title">PulseSSH is locked</string>
+    <string name="lock_message">Unlock to reach your saved hosts, keys and sessions.</string>
+    <string name="lock_action_unlock">Unlock</string>
+    <string name="lock_status_unlocking">Unlocking…</string>
+    <string name="lock_action_dismiss_error">Dismiss</string>
+
+    <!-- Host list. -->
+    <string name="hosts_title">PulseSSH</string>
+    <!-- Content description for the floating action button; read aloud by TalkBack. -->
+    <string name="hosts_action_add">Add host</string>
+    <string name="hosts_empty_title">No hosts yet</string>
+    <string name="hosts_empty_message">Add a host to start a session. Everything you save stays
+        encrypted on this device.</string>
+
+</resources>

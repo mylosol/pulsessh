@@ -1,0 +1,45 @@
+# Dependency updates for PulseSSH.
+#
+# Minor and patch bumps are grouped into a single PR per ecosystem, so a
+# quiet week costs one CI run instead of a dozen. Major bumps stay separate
+# because they need a human to read the changelog.
+version: 2
+
+updates:
+  # Gradle: version catalog (gradle/libs.versions.toml) and build scripts.
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 3
+    groups:
+      gradle-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: "deps"
+    labels:
+      - dependencies
+
+  # GitHub Actions used by the workflows in .github/workflows.
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Etc/UTC
+    open-pull-requests-limit: 3
+    groups:
+      actions-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+    commit-message:
+      prefix: "ci"
+    labels:
+      - dependencies
