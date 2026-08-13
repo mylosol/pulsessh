@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Data extraction rules for Android 12 (API 31) and above, referenced by
+    android:dataExtractionRules in the manifest.
+
+    Both transfer paths are excluded in full:
+
+    * <cloud-backup> covers Auto Backup to Google Drive. Nothing in this app may leave the device.
+      The encrypted database and the wrapped key blobs are useless off-device anyway - the key that
+      unwraps them is hardware-backed and cannot be exported - so a cloud copy would be pure risk
+      with zero restore value.
+
+    * <device-transfer> covers direct device-to-device migration. It is excluded for the same
+      reason: the new device cannot reconstruct the hardware key, so restored files would be
+      permanently unreadable while still having been copied across a wire. The user re-adds hosts
+      and re-imports keys on the new device, consciously, which is the behaviour a security tool
+      should have.
+
+    Both sections must be listed explicitly; omitting one would fall back to backing that path up.
+-->
+<data-extraction-rules>
+
+    <cloud-backup>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </cloud-backup>
+
+    <device-transfer>
+        <exclude domain="root" path="." />
+        <exclude domain="file" path="." />
+        <exclude domain="database" path="." />
+        <exclude domain="sharedpref" path="." />
+        <exclude domain="external" path="." />
+    </device-transfer>
+
+</data-extraction-rules>

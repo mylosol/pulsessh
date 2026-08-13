@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    The XML theme exists only for the window that the framework creates before Compose draws its
+    first frame: the launch (splash) window and, briefly, the recents thumbnail. Everything the
+    user actually interacts with is themed by PulseSshTheme in Compose.
+
+    Parent choice: this file must stay dependency free, so it cannot use Theme.Material3.* (that
+    lives in the com.google.android.material XML library, which this project does not depend on)
+    and it cannot use android:Theme.DeviceDefault.DayNight.NoActionBar either - despite the name
+    that style does not exist in the platform, and android:Theme.DeviceDefault.DayNight is not a
+    public resource. The portable equivalent is the light DeviceDefault NoActionBar parent here,
+    plus the dark one in values-night/, which is exactly what "DayNight" means.
+
+    windowBackground is set to the same canvas colour that the Compose theme uses, so the launch
+    window and the first composed frame are indistinguishable and there is no white flash.
+-->
+<resources>
+
+    <style name="Theme.PulseSSH" parent="android:Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowBackground">#FFF7F8FA</item>
+    </style>
+
+</resources>

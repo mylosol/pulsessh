@@ -1,0 +1,184 @@
+# ---------------------------------------------------------------------------
+# PulseSSH - pull request validation and main branch gate.
+#
+# Cost model: the jobs run in a chain (static -> unit -> assemble) so that a
+# cheap failure (a formatting violation) never pays for an expensive Android
+# build. Documentation only changes skip the whole workflow via paths-ignore.
+#
+# Branch protection should require exactly one check: "ci-ok".
+# ---------------------------------------------------------------------------
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".gitignore"
+
+# One run per branch. A new push cancels the previous, still running, one.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# Least privilege. The workflow only reads the repository.
+# If you ever add a step that posts a PR comment, add:  pull-requests: write
+permissions:
+  contents: read
+
+env:
+  # Keep the JVMs small: the ubuntu-latest runner has 7 GB and a fat Gradle
+  # daemon plus a fat Kotlin daemon is the usual cause of OOM kills here.
+  # These -D values override the larger settings in gradle.properties.
+  GRADLE_OPTS: >-
+    -Xmx1g
+    -Dorg.gradle.jvmargs=-Xmx2560m
+    -Dorg.gradle.workers.max=2
+    -Dkotlin.daemon.jvm.options=-Xmx1536m
+    -Dfile.encoding=UTF-8
+
+jobs:
+  # 1. Cheapest gate: style and static analysis. Fails in ~1-2 minutes.
+  static:
+    name: static
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Only main is allowed to write new entries into the shared Gradle
+          # cache; branches read it. This keeps the cache small and warm.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: ktlint + detekt
+        run: ./gradlew ktlintCheck detekt --no-daemon --stacktrace
+
+      - name: Upload static analysis reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: static-analysis-reports
+          path: |
+            **/build/reports/ktlint/**
+            **/build/reports/detekt/**
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # 2. Unit tests. Only reached when the code is at least well formed.
+  unit:
+    name: unit
+    needs: static
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      # Uploaded only on red, so a failure is diagnosable without a rerun.
+      - name: Upload unit test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-reports
+          path: |
+            **/build/reports/tests/testDebugUnitTest/**
+            **/build/test-results/testDebugUnitTest/**
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # 3. Most expensive step: a real debug build, producing an installable APK.
+  assemble:
+    name: assemble
+    needs: unit
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # The Android SDK is preinstalled on ubuntu-latest; do not install it.
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload preview APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: pulsessh-preview-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+          if-no-files-found: error
+
+  # 4. Single aggregated status for branch protection.
+  #    Runs always() so it also reports when an upstream job failed.
+  ci-ok:
+    name: ci-ok
+    needs: [static, unit, assemble]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check that every required job succeeded
+        env:
+          RESULTS: ${{ join(needs.*.result, ',') }}
+        run: |
+          echo "Upstream job results: $RESULTS"
+          if [ "${{ contains(needs.*.result, 'failure') }}" = "true" ] \
+            || [ "${{ contains(needs.*.result, 'cancelled') }}" = "true" ] \
+            || [ "${{ contains(needs.*.result, 'skipped') }}" = "true" ]; then
+            echo "::error::One or more required CI jobs did not succeed."
+            exit 1
+          fi
+          echo "All required CI jobs succeeded."

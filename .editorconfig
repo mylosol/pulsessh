@@ -1,0 +1,47 @@
+# EditorConfig for PulseSSH - also the single source of truth for ktlint.
+# https://editorconfig.org
+
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+max_line_length = 120
+
+[*.{kt,kts}]
+ktlint_code_style = ktlint_official
+indent_style = space
+indent_size = 4
+max_line_length = 120
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_kotlin_imports_layout = *,java.**,javax.**,kotlin.**,^
+ij_kotlin_packages_to_use_import_on_demand = unset
+
+# Compose relaxations: @Composable functions are PascalCase and often exceed the
+# "one expression body" and multiline-expression-wrapping heuristics, and previews
+# intentionally live next to the component they render.
+ktlint_standard_function-naming = disabled
+ktlint_standard_function-expression-body = disabled
+ktlint_standard_multiline-expression-wrapping = disabled
+ktlint_standard_string-template-indent = disabled
+ktlint_function_naming_ignore_when_annotated_with = Composable, Test
+# Wildcard imports are allowed for the Compose DSL packages only; see detekt's
+# WildcardImport rule for the enforced list.
+ktlint_standard_no-wildcard-imports = disabled
+
+[*.{yml,yaml,json,toml}]
+indent_size = 2
+
+[*.xml]
+indent_size = 4
+
+[*.md]
+trim_trailing_whitespace = false
+
+[gradle/wrapper/gradle-wrapper.properties]
+insert_final_newline = false
