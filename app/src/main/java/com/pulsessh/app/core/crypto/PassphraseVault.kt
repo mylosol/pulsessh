@@ -39,7 +39,10 @@ class PassphraseVault
             dataStore.data.map { prefs -> prefs[WRAPPED_PASSPHRASE_KEY] != null }
 
         /** An encrypt [Cipher] to authenticate via BiometricPrompt, for first-run wrapping. */
-        fun prepareWrapCipher(): Cipher = masterKeyGateway.createEncryptCipher()
+        suspend fun prepareWrapCipher(): Cipher =
+            withContext(ioDispatcher) {
+                masterKeyGateway.createEncryptCipher()
+            }
 
         /**
          * Generates a fresh random passphrase and stores it wrapped with [authenticatedCipher].

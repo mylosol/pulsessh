@@ -196,6 +196,23 @@ class LockViewModelTest {
         }
 
     @Test
+    fun `a decrypt against a vanished key resets the vault and surfaces a retryable error`() =
+        runTest {
+            val fakeGateway = FakeMasterKeyGateway()
+            val vault = PassphraseVault(newDataStore(), fakeGateway, UnconfinedTestDispatcher())
+            vault.wrapAndStore(vault.prepareWrapCipher())
+            fakeGateway.deleteKey()
+            val viewModel = LockViewModel(vault, AppLockController())
+
+            viewModel.onIntent(LockIntent.Unlock)
+            advanceUntilIdle()
+
+            assertThat(viewModel.state.value.error).isEqualTo(LockError.KeyInvalidated)
+            assertThat(viewModel.state.value.isUnlocking).isFalse()
+            assertThat(vault.hasStoredPassphrase.first()).isFalse()
+        }
+
+    @Test
     fun `dismissing an error clears it`() =
         runTest {
             val (viewModel, _) = newViewModel()

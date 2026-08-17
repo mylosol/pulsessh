@@ -62,25 +62,29 @@ fun LockScreen(
 
     LockContent(
         state = state,
-        onUnlockClick = { viewModel.onIntent(LockIntent.Unlock) },
+        onUnlockClick = {
+            val canAuthenticate =
+                BiometricManager.from(activity).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
+            if (canAuthenticate == BiometricManager.BIOMETRIC_SUCCESS) {
+                viewModel.onIntent(LockIntent.Unlock)
+            } else {
+                viewModel.onIntent(
+                    LockIntent.BiometricAuthFailed(activity.getString(R.string.lock_error_no_biometric)),
+                )
+            }
+        },
         onDismissErrorClick = { viewModel.onIntent(LockIntent.DismissError) },
         modifier = modifier,
     )
 }
 
-/** Checks biometric availability, then runs `BiometricPrompt` against [effect]'s cipher. */
+/** Runs `BiometricPrompt` against [effect]'s cipher. Biometric availability was already
+ * confirmed before [LockIntent.Unlock] was dispatched, in [LockScreen]'s `onUnlockClick`. */
 private fun runBiometricPrompt(
     activity: FragmentActivity,
     viewModel: LockViewModel,
     effect: LockEffect.RequestBiometricAuth,
 ) {
-    val canAuthenticate =
-        BiometricManager.from(activity).canAuthenticate(BiometricManager.Authenticators.BIOMETRIC_STRONG)
-    if (canAuthenticate != BiometricManager.BIOMETRIC_SUCCESS) {
-        viewModel.onIntent(LockIntent.BiometricAuthFailed(activity.getString(R.string.lock_error_no_biometric)))
-        return
-    }
-
     val promptInfo =
         BiometricPrompt.PromptInfo.Builder()
             .setTitle(activity.getString(R.string.lock_biometric_prompt_title))

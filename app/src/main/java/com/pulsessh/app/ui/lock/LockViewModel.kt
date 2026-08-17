@@ -113,11 +113,18 @@ class LockViewModel
                         }
                     emitEffect(LockEffect.RequestBiometricAuth(cipher, mode))
                 } catch (_: KeyPermanentlyInvalidatedException) {
-                    // The user's enrolled biometrics changed since the key was created; the old
-                    // key (and anything wrapped with it) can never be used again. Wipe both and
-                    // let the next Unlock attempt take the first-run wrap path instead.
+                    // The user's enrolled biometrics changed since the key was created, or the key
+                    // vanished entirely (e.g. the user removed and re-added their screen lock,
+                    // which deletes auth-bound keys without necessarily invalidating them first) -
+                    // either way the old key (and anything wrapped with it) can never be used
+                    // again. Wipe both and let the next Unlock attempt take the first-run wrap
+                    // path instead.
                     passphraseVault.reset()
                     setState { copy(isUnlocking = false, error = LockError.KeyInvalidated) }
+                } catch (_: Exception) {
+                    // Anything else - a KeyStore provider quirk, a DataStore read failure - should
+                    // surface as a retryable error, not crash the app.
+                    setState { copy(isUnlocking = false, error = LockError.Generic) }
                 }
             }
         }

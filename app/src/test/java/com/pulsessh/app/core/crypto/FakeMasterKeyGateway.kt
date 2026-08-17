@@ -16,7 +16,9 @@ private const val FAKE_KEY_SIZE_BITS = 256
  *
  * Uses a plain [SecretKey] with no authentication requirement, so tests can drive the full
  * [Cipher] lifecycle - including [deleteKey] and the resulting key-rotation case - without the
- * Android KeyStore or a device.
+ * Android KeyStore or a device. Mirrors [AndroidMasterKeyGateway]'s asymmetry: [createEncryptCipher]
+ * creates a key on demand, [createDecryptCipher] throws [KeyPermanentlyInvalidatedException] if no
+ * key has ever been created rather than silently minting an unrelated one.
  */
 class FakeMasterKeyGateway : MasterKeyGateway {
     private var secretKey: SecretKey? = null
@@ -31,14 +33,17 @@ class FakeMasterKeyGateway : MasterKeyGateway {
     override fun createEncryptCipher(): Cipher {
         throwIfInvalidated()
         return Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.ENCRYPT_MODE, secretKeyOrCreate())
+            init(Cipher.ENCRYPT_MODE, secretKey ?: generateSecretKey())
         }
     }
 
     override fun createDecryptCipher(iv: ByteArray): Cipher {
         throwIfInvalidated()
+        val key =
+            secretKey
+                ?: throw KeyPermanentlyInvalidatedException("No key has been created yet")
         return Cipher.getInstance(TRANSFORMATION).apply {
-            init(Cipher.DECRYPT_MODE, secretKeyOrCreate(), GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
+            init(Cipher.DECRYPT_MODE, key, GCMParameterSpec(GCM_TAG_LENGTH_BITS, iv))
         }
     }
 
@@ -53,8 +58,8 @@ class FakeMasterKeyGateway : MasterKeyGateway {
         }
     }
 
-    private fun secretKeyOrCreate(): SecretKey =
-        secretKey ?: KeyGenerator.getInstance("AES").apply { init(FAKE_KEY_SIZE_BITS, SecureRandom()) }
+    private fun generateSecretKey(): SecretKey =
+        KeyGenerator.getInstance("AES").apply { init(FAKE_KEY_SIZE_BITS, SecureRandom()) }
             .generateKey()
             .also { secretKey = it }
 }

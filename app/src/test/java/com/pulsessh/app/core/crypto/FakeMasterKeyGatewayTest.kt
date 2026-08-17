@@ -4,7 +4,6 @@ import android.security.keystore.KeyPermanentlyInvalidatedException
 import com.google.common.truth.Truth.assertThat
 import org.junit.Assert.assertThrows
 import org.junit.Test
-import javax.crypto.AEADBadTagException
 
 class FakeMasterKeyGatewayTest {
     @Test
@@ -29,7 +28,11 @@ class FakeMasterKeyGatewayTest {
 
         gateway.deleteKey()
 
-        assertThrows(AEADBadTagException::class.java) {
+        // FakeMasterKeyGateway mirrors AndroidMasterKeyGateway's asymmetry: a missing key means
+        // createDecryptCipher throws KeyPermanentlyInvalidatedException rather than silently
+        // decrypting against a freshly minted, unrelated key (which would instead fail later
+        // with a confusing AEADBadTagException).
+        assertThrows(KeyPermanentlyInvalidatedException::class.java) {
             gateway.createDecryptCipher(iv).doFinal(ciphertext)
         }
     }
@@ -43,5 +46,14 @@ class FakeMasterKeyGatewayTest {
         // The flag is one-shot: the call after the thrown one succeeds normally.
         val cipher = gateway.createEncryptCipher()
         assertThat(cipher).isNotNull()
+    }
+
+    @Test
+    fun `createDecryptCipher throws when no key has ever been created`() {
+        val gateway = FakeMasterKeyGateway()
+
+        assertThrows(KeyPermanentlyInvalidatedException::class.java) {
+            gateway.createDecryptCipher(ByteArray(12))
+        }
     }
 }
