@@ -827,8 +827,8 @@ Replace the full contents of `app/src/test/java/com/pulsessh/app/ui/lock/LockVie
 package com.pulsessh.app.ui.lock
 
 import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import app.cash.turbine.test
 import com.google.common.truth.Truth.assertThat
 import com.pulsessh.app.core.crypto.FakeMasterKeyGateway
@@ -836,6 +836,7 @@ import com.pulsessh.app.core.crypto.PassphraseVault
 import com.pulsessh.app.core.security.AppLockController
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -1399,6 +1400,7 @@ fun LockContent(
                 when (val error = state.error) {
                     is LockError.Platform -> error.message
                     LockError.KeyInvalidated -> stringResource(R.string.lock_error_key_invalidated)
+                    LockError.Generic -> stringResource(R.string.lock_error_generic)
                 }
             Text(
                 text = errorText,
