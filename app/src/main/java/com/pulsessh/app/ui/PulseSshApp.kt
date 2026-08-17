@@ -4,7 +4,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -18,12 +22,31 @@ import com.pulsessh.app.ui.theme.PulseSshTheme
  *
  * The graph starts locked. Every route that can show host data therefore sits behind
  * [PulseSshRoute.Lock], and unlocking pops the lock route off the back stack so that the system
- * back gesture cannot return to a screen that has already served its purpose.
+ * back gesture cannot return to a screen that has already served its purpose. Backgrounding the
+ * app or turning the screen off flips [AppLockViewModel.isUnlocked] back to false - observed
+ * here - which forces navigation straight back to [PulseSshRoute.Lock], regardless of which
+ * screen was showing.
  *
  * @param navController hoisted so that tests and future deep-link handling can drive navigation.
+ * @param appLockViewModel bridges [com.pulsessh.app.core.security.AppLockController]'s
+ * process-wide state into this composable; injected by Hilt, overridable in tests.
  */
 @Composable
-fun PulseSshApp(navController: NavHostController = rememberNavController()) {
+fun PulseSshApp(
+    navController: NavHostController = rememberNavController(),
+    appLockViewModel: AppLockViewModel = hiltViewModel(),
+) {
+    val isUnlocked by appLockViewModel.isUnlocked.collectAsStateWithLifecycle()
+
+    LaunchedEffect(isUnlocked) {
+        if (!isUnlocked) {
+            navController.navigate(PulseSshRoute.Lock.route) {
+                popUpTo(navController.graph.id) { inclusive = true }
+                launchSingleTop = true
+            }
+        }
+    }
+
     PulseSshTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
