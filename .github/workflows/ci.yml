@@ -73,7 +73,7 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: ktlint + detekt
-        run: ./gradlew ktlintCheck detekt --no-daemon --stacktrace
+        run: ./gradlew ktlintCheck detekt lintDebug --no-daemon --stacktrace
 
       - name: Upload static analysis reports
         if: failure()

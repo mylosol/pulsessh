@@ -15,6 +15,13 @@
     <string name="lock_action_unlock">Unlock</string>
     <string name="lock_status_unlocking">Unlocking…</string>
     <string name="lock_action_dismiss_error">Dismiss</string>
+    <string name="lock_biometric_prompt_title">Unlock PulseSSH</string>
+    <string name="lock_biometric_prompt_subtitle">Use your fingerprint or face</string>
+    <string name="lock_biometric_prompt_cancel">Cancel</string>
+    <string name="lock_error_no_biometric">Set up a screen lock or fingerprint in your device settings to use PulseSSH.</string>
+    <string name="lock_error_not_recognised">Not recognised. Try again.</string>
+    <string name="lock_error_generic">Something went wrong. Try again.</string>
+    <string name="lock_error_key_invalidated">Your device\'s screen lock or biometrics changed. Unlock again to set up a new one.</string>
 
     <!-- Host list. -->
     <string name="hosts_title">PulseSSH</string>
