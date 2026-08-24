@@ -63,7 +63,7 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           # Only main is allowed to write new entries into the shared Gradle
           # cache; branches read it. This keeps the cache small and warm.
@@ -103,7 +103,7 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
@@ -142,7 +142,7 @@ jobs:
           java-version: "17"
           cache: gradle
 
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@v6
         with:
           cache-read-only: ${{ github.ref != 'refs/heads/main' }}
 
